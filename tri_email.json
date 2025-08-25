@@ -1,0 +1,357 @@
+{
+  "name": "tri-email",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=entre ces 4 tags, retourne moi le tag que tu donnerais pour catégoriser cet e-mail.si aucun parmis les tags donnés ne correspond, retourne \"other\".\nles tag sont:\n1-newsletter\n2-promotion\n3-business\n4-spam\n5-client\nrepond uniquement avec le nom du tag et rien d'autre.\nvoici le contenu de l'email:\n{{ $json.data }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1020,
+        -920
+      ],
+      "id": "14ccd499-3976-4a79-a52e-be2d3007acde",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "mistralai/mistral-7b-instruct:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        -560
+      ],
+      "id": "4aee5831-0e1f-4995-84ee-e51a74c0480a",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "So8CVxVK3rWp25OY",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1760,
+        -780
+      ],
+      "id": "938912e9-22a1-49e5-ae25-2f4ed224a586",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "W3VQcyQ48GFVg1uC",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "dataPropertyName": "html",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "data",
+              "cssSelector": "body",
+              "skipSelectors": "img"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -1320,
+        -680
+      ],
+      "id": "04b0dd87-ca16-44b8-a2ee-bf4fb64a7c2b",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "X5LJS8caWanTLj7h",
+          "mode": "list",
+          "cachedResultName": "sousWorkflow_email"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1080,
+        -640
+      ],
+      "id": "f9ca8551-c2bd-47bc-843f-0f5ddbb86491",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "01d5e759-cd29-4514-9a7c-d56de61d7d96",
+              "name": "data",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1340,
+        -460
+      ],
+      "id": "b9b8601a-3827-4eed-91da-17cec863a7e2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "addLabels",
+        "threadId": "={{ $('Gmail Trigger').item.json.threadId }}",
+        "labelIds": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -900,
+        -380
+      ],
+      "id": "0b3b47ae-7f9c-4c87-bee6-588865a942d0",
+      "name": "Gmail",
+      "webhookId": "b2c0ba83-321c-47e8-ae22-da8b78c6c52d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "W3VQcyQ48GFVg1uC",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "83c0f74b-6b16-4df6-a9dd-d99315ba1041",
+              "leftValue": "={{ $json.html }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1540,
+        -780
+      ],
+      "id": "b7565ea9-05d9-4d90-9613-75d1089ee319",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a2fb1d03-2ab2-4501-a962-e12b77b61745",
+              "name": "data",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1320,
+        -880
+      ],
+      "id": "d88c3314-cbe9-44d7-83a5-4c3479874c19",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "mode": "expression",
+        "numberOutputs": 1,
+        "output": 0
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1160,
+        -1060
+      ],
+      "id": "b348a70b-496a-4801-91c4-1f86f152eb54",
+      "name": "Switch"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7e68549f-0329-4573-a9cb-072da7d34384",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e559e71e798f519f58c8dd99c967085c85cc3b15f3b1dbd92e89348b58d4b0e1"
+  },
+  "id": "S5zFSuBk7C41l4Qa",
+  "tags": []
+}
